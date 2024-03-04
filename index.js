@@ -1,41 +1,21 @@
-require("dotenv").config();
-
-//from the .env file
-const PORT_NUMBER = process.env.PORT;
-const db_url = process.env.CONNECTION_STRING;
-
-//importing the required modules
-const bodyParser = require("body-parser");
+const dotenv = require("dotenv");
 const mongoose = require("mongoose");
-const express = require("express");
-const app = express();
+dotenv.config();
 
-//importing the routes
-const productRoutes = require("./routers/product_router");
+const app = require("./app");
 
-//middleware
-app.use(express.json());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.CONNECTION_STRING);
+    console.log("Database connection successful!!");
+  } catch (error) {
+    console.log(`Error during connection of database ${error}.`);
+    process.exit(1);
+  }
+};
 
-//initial route
-app.get("/", (req, res) => {
-  res.send("Hello World");
-});
+connectDB();
 
-//routes
-app.use("/products", productRoutes);
-
-//database connection and server initialization
-app.listen(PORT_NUMBER, async () => {
-  await mongoose
-    .connect(db_url)
-    .then(() => {
-      console.log("Database connected");
-    })
-    .catch((err) => {
-      console.log("Error: ", err);
-    });
-
-  console.log(`Server is running on port ${PORT_NUMBER}`);
+app.listen(process.env.PORT, () => {
+  console.log(`Server started from port ${process.env.PORT}`);
 });
