@@ -1,5 +1,5 @@
 const Product = require("../models/products");
-
+const cloudinary = require("../utils/cloudinaryConfig");
 //GetAllProducts
 const getProducts = async (req, res) => {
   // await Product.find()
@@ -11,7 +11,30 @@ const getProducts = async (req, res) => {
   //   });
 
   try {
-    const products = await Product.find();
+    const { name, category, price, sort } = req.query;
+    const queryObject = {};
+
+    if (name) {
+      queryObject.name = { $regex: name, $options: "i" };
+    }
+
+    if (category) {
+      queryObject.category = { $regex: category, $options: "i" };
+    }
+
+    // if (price) {
+    //   queryObject.price = price;
+    // }
+    const apiData = await Product.find(queryObject);
+    // console.log(queryObject);
+
+    if (sort) {
+      const sortFixed = sort.split(",").join(" ");
+      apiData = apiData.sort(sortFixed);
+    }
+
+    const products = await apiData;
+
     res.status(200).json({
       data: products,
       TotalProducts: products.length,
@@ -40,7 +63,8 @@ const addNewProduct = async (req, res) => {
   //   });
 
   const { name, price, category } = req.body;
-
+  const uploadedImage = await cloudinary.uploader.upload(req.file.path);
+  const image = uploadedImage.secure_url;
   if (!name || !price || !category) {
     res.status(400).json({
       message: "Please provide all the fields!!",
@@ -51,6 +75,7 @@ const addNewProduct = async (req, res) => {
     name,
     price,
     category,
+    image,
   });
 
   res.status(200).json({
@@ -86,27 +111,33 @@ const deleteProductById = async (req, res) => {
   }
 };
 
-// const updateProductById = async (req, res) => {
-//   try {
-//     const product = await findById(req.params.id);
-//     const updatedProduct = await product.updateOne(
-//       { id: product.id },
-//       { $set: req.body }
-//     );
-//     res.status(200).json({
-//       message: "Product details updated successfully",
-//       data: updatedProduct,
-//     });
-//   } catch (error) {
-//     res.status(400).json({
-//       message: "Product update failed!!",
-//     });
-//   }
-// };
+const updateProductById = async (req, res) => {
+  try {
+    //const product = await Product.findById(req.params.id);
+    const updatedProduct = await Product.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: req.body,
+      },
+      {
+        new: true,
+      }
+    );
+    res.status(200).json({
+      message: "Product details updated successfully",
+      data: updatedProduct,
+    });
+  } catch (error) {
+    res.status(400).json({
+      message: "Product update failed!!",
+    });
+  }
+};
 
 module.exports = {
   addNewProduct,
   getProducts,
   getProductById,
   deleteProductById,
+  updateProductById,
 };
